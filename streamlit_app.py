@@ -21,17 +21,25 @@ def money(val):
 def generate_number(prefix, idx):
     return f"{prefix}-{datetime.today().year}-{10000 + idx}"
 
+import tempfile
+
 def clean_logo_map(uploaded_files):
     logo_map = {}
     if uploaded_files:
         for file in uploaded_files:
             try:
-                with Image.open(file) as img:
-                    img.verify()
-                logo_map[os.path.splitext(os.path.basename(file.name))[0].lower()] = file
+                # Save to a temp file
+                suffix = os.path.splitext(file.name)[1]
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                    tmp.write(file.read())
+                    tmp_path = tmp.name
+                # Use the lowercase supplier name as key
+                logo_key = os.path.splitext(os.path.basename(file.name))[0].lower()
+                logo_map[logo_key] = tmp_path
             except:
                 continue
     return logo_map
+
 
 def create_document(index, supplier_name, supplier_address, customer_name, items, mode, invoice_logo_map, po_logo_map):
     po_number = generate_number("FER", index)
