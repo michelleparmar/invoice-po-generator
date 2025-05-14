@@ -25,19 +25,16 @@ import tempfile
 
 def clean_logo_map(uploaded_files):
     logo_map = {}
-    if uploaded_files:
-        for file in uploaded_files:
-            try:
-                # Save to a temp file
-                suffix = os.path.splitext(file.name)[1]
-                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                    tmp.write(file.read())
-                    tmp_path = tmp.name
-                # Use the lowercase supplier name as key
-                logo_key = os.path.splitext(os.path.basename(file.name))[0].lower()
-                logo_map[logo_key] = tmp_path
-            except:
-                continue
+    for file in uploaded_files or []:
+        try:
+            supplier_key = os.path.splitext(file.name)[0].lower()
+            suffix = os.path.splitext(file.name)[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(file.read())
+                tmp.flush()
+                logo_map[supplier_key] = tmp.name
+        except Exception as e:
+            st.error(f"Error saving logo for {file.name}: {e}")
     return logo_map
 
 
@@ -61,12 +58,15 @@ def create_document(index, supplier_name, supplier_address, customer_name, items
         pdf.set_font("Arial", size=9)
 
         logo_map = invoice_logo_map if is_invoice else po_logo_map
-        logo_key = supplier_name.lower()
-        if logo_key in logo_map:
-            try:
-                pdf.image(logo_map[logo_key], 10, 8, 50)
-            except:
-                pass
+logo_key = supplier_name.lower()
+
+if logo_key in logo_map:
+    logo_path = logo_map[logo_key]
+    try:
+        pdf.image(logo_path, 10, 8, 50)
+    except Exception as e:
+        st.error(f"Error rendering logo for {supplier_name}: {e}")
+
 
         pdf.set_font("Arial", "B", 14)
         pdf.cell(0, 10, "INVOICE" if is_invoice else "PURCHASE ORDER", ln=True, align="R")
